@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: mindflow
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/mindflow?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:your_api_key_here}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: gpt-3.5-turbo
+      embedding:
+        options:
+          model: text-embedding-ada-002
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+        initialize-schema: true
+
+    vectorstore-pg:
+      url: jdbc:postgresql://${PG_HOST:localhost}:5432/vectordb
+      username: ${PG_USER:pguser}
+      password: ${PG_PASSWORD:pgpassword}
+
+  task:
+    execution:
+      pool:
+        core-size: 8
+        max-size: 16
+        queue-capacity: 100
+        thread-name-prefix: mindflow-async-
+
+server:
+  port: 8080
+
+jwt:
+  secret: c2VjcmV0LWtleS1taW5kZmxvdy1hcHBsaWNhdGlvbi0yMDIzLXN1cGVyLXNlY3VyZQ==
+  expiration: 86400000

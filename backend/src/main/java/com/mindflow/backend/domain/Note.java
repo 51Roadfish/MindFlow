@@ -1,0 +1,58 @@
+package com.mindflow.backend.domain;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@Entity
+@Table(name = "note")
+@EntityListeners(AuditingEntityListener.class)
+public class Note {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "notebook_id")
+    private Long notebookId;
+
+    @Column(nullable = false, length = 255)
+    private String title;
+
+    @Lob
+    @Column(nullable = false, columnDefinition="LONGTEXT")
+    private String content;
+
+    @Lob
+    @Column(name = "content_text", columnDefinition="LONGTEXT")
+    private String contentText;
+
+    @Column(length = 500)
+    private String summary;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    private List<String> tags;
+
+    @Column(name = "is_archived", columnDefinition = "boolean default false")
+    private Boolean isArchived = false;
+
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+}
