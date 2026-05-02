@@ -3,7 +3,7 @@
 - [ ] Clarify Project Requirements
 - [x] Scaffold the Project
 - [x] Customize the Project
-- [ ] Compile the Project
-- [ ] Create and Run Task
-- [ ] Launch the Project
+- [x] Compile the Project
+- [x] Create and Run Task
+- [x] Launch the Project
 - [ ] Ensure Documentation is Complete

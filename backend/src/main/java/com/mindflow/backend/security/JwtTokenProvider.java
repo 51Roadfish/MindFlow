@@ -1,4 +1,4 @@
-﻿package com.mindflow.backend.security;
+package com.mindflow.backend.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

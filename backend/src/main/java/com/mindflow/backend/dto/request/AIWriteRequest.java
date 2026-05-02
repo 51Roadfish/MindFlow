@@ -1,6 +1,9 @@
-﻿package com.mindflow.backend.dto.request;
+package com.mindflow.backend.dto.request;
 
 import lombok.Data;
 
 @Data
-public class AIWriteRequest {}
+public class AIWriteRequest {
+    private String action;
+    private String content;
+}

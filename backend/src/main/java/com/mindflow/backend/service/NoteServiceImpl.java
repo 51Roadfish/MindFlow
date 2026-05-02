@@ -1,4 +1,4 @@
-﻿package com.mindflow.backend.service;
+package com.mindflow.backend.service;
 
 import com.mindflow.backend.domain.Note;
 import com.mindflow.backend.domain.User;
@@ -19,6 +19,7 @@ public class NoteServiceImpl implements NoteService {
 
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
+    private final EmbeddingService embeddingService;
 
     private User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
@@ -50,6 +51,7 @@ public class NoteServiceImpl implements NoteService {
         note.setIsArchived(false);
 
         note = noteRepository.save(note);
+        embeddingService.embedAndStore(note);
         return mapToResponse(note);
     }
 
@@ -65,6 +67,7 @@ public class NoteServiceImpl implements NoteService {
         if (request.getIsArchived() != null) note.setIsArchived(request.getIsArchived());
 
         note = noteRepository.save(note);
+        embeddingService.embedAndStore(note);
         return mapToResponse(note);
     }
 

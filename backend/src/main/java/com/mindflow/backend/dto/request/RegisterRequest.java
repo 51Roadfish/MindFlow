@@ -1,4 +1,4 @@
-﻿package com.mindflow.backend.dto.request;
+package com.mindflow.backend.dto.request;
 
 import lombok.Data;
 

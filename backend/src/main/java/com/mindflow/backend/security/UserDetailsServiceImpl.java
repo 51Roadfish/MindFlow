@@ -1,4 +1,4 @@
-﻿package com.mindflow.backend.security;
+package com.mindflow.backend.security;
 
 import com.mindflow.backend.domain.User;
 import com.mindflow.backend.repository.UserRepository;

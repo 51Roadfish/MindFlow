@@ -1,4 +1,4 @@
-﻿package com.mindflow.backend.config;
+package com.mindflow.backend.config;
 
 import com.mindflow.backend.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;

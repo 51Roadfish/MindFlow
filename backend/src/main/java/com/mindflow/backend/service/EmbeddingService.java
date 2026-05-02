@@ -1,3 +1,7 @@
-﻿package com.mindflow.backend.service;
+package com.mindflow.backend.service;
 
-public interface EmbeddingService {}
+import com.mindflow.backend.domain.Note;
+
+public interface EmbeddingService {
+    void embedAndStore(Note note);
+}

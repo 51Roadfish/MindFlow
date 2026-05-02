@@ -1,4 +1,4 @@
-﻿package com.mindflow.backend.controller;
+package com.mindflow.backend.controller;
 
 import com.mindflow.backend.dto.request.NoteCreateRequest;
 import com.mindflow.backend.dto.request.NoteUpdateRequest;

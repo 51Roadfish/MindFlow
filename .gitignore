@@ -23,7 +23,7 @@ Thumbs.db
 .env
 application-local.yml
 application-prod.yml
-
+backend/src/main/resources/application.yml
 # Dependencies
 node_modules/
 

@@ -1,6 +1,8 @@
-﻿package com.mindflow.backend.dto.request;
+package com.mindflow.backend.dto.request;
 
 import lombok.Data;
 
 @Data
-public class AIChatRequest {}
+public class AIChatRequest {
+    private String question;
+}

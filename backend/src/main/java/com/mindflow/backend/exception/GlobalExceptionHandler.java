@@ -1,4 +1,4 @@
-﻿package com.mindflow.backend.exception;
+package com.mindflow.backend.exception;
 
 import org.springframework.web.bind.annotation.ControllerAdvice;
 

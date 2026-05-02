@@ -1,3 +1,3 @@
-﻿package com.mindflow.backend.service;
+package com.mindflow.backend.service;
 
 public interface NotebookService {}

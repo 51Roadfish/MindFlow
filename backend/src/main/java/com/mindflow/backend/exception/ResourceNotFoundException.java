@@ -1,3 +1,3 @@
-﻿package com.mindflow.backend.exception;
+package com.mindflow.backend.exception;
 
 public class ResourceNotFoundException extends RuntimeException {}
