@@ -7,6 +7,8 @@ import com.mindflow.backend.dto.request.NoteUpdateRequest;
 import com.mindflow.backend.dto.response.NoteResponse;
 import com.mindflow.backend.repository.NoteRepository;
 import com.mindflow.backend.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,7 @@ public class NoteServiceImpl implements NoteService {
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
     private final EmbeddingService embeddingService;
+    private final ObjectMapper objectMapper;
 
     private User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
@@ -48,6 +51,7 @@ public class NoteServiceImpl implements NoteService {
         note.setTitle(request.getTitle());
         note.setContent(request.getContent());
         note.setNotebookId(request.getNotebookId());
+        note.setTags(request.getTags());
         note.setIsArchived(false);
 
         note = noteRepository.save(note);
@@ -65,6 +69,7 @@ public class NoteServiceImpl implements NoteService {
         if (request.getContent() != null) note.setContent(request.getContent());
         if (request.getNotebookId() != null) note.setNotebookId(request.getNotebookId());
         if (request.getIsArchived() != null) note.setIsArchived(request.getIsArchived());
+        if (request.getTags() != null) note.setTags(request.getTags());
 
         note = noteRepository.save(note);
         embeddingService.embedAndStore(note);
@@ -88,9 +93,23 @@ public class NoteServiceImpl implements NoteService {
     }
 
     @Override
-    public List<NoteResponse> getAllNotes(String username) {
+    public List<NoteResponse> getAllNotes(String username, List<String> tags) {
         User user = getUserByUsername(username);
-        return noteRepository.findByUserId(user.getId()).stream()
+        List<Note> notes;
+
+        if (tags != null && !tags.isEmpty()) {
+            String tagsJson;
+            try {
+                tagsJson = objectMapper.writeValueAsString(tags);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to serialize tags", e);
+            }
+            notes = noteRepository.findByUserIdAndTagsOverlap(user.getId(), tagsJson);
+        } else {
+            notes = noteRepository.findByUserId(user.getId());
+        }
+
+        return notes.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
