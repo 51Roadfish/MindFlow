@@ -1,0 +1,111 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mindflow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mindflow}
+      MYSQL_USER: ${MYSQL_USER:-mindflow}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: mindflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mindflow}
+      POSTGRES_USER: ${POSTGRES_USER:-mindflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: mindflow-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mindflow-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # MySQL
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-mindflow}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-mindflow}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      # pgvector
+      SPRING_AI_VECTORSTORE_PGVECTOR_HOST: postgres
+      SPRING_AI_VECTORSTORE_PGVECTOR_PORT: 5432
+      SPRING_AI_VECTORSTORE_PGVECTOR_DATABASE: ${POSTGRES_DB:-mindflow}
+      SPRING_AI_VECTORSTORE_PGVECTOR_USERNAME: ${POSTGRES_USER:-mindflow}
+      SPRING_AI_VECTORSTORE_PGVECTOR_PASSWORD: ${POSTGRES_PASSWORD}
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      # AI Chat — 智谱 GLM-4-Flash
+      SPRING_AI_OPENAI_CHAT_API_KEY: ${OPENAI_CHAT_API_KEY}
+      SPRING_AI_OPENAI_CHAT_BASE_URL: https://open.bigmodel.cn/api/paas/v4
+      SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL: GLM-4-Flash
+      # AI Embedding — 硅基流动 BAAI/bge-large-zh-v1.5
+      SPRING_AI_OPENAI_EMBEDDING_API_KEY: ${OPENAI_EMBEDDING_API_KEY}
+      SPRING_AI_OPENAI_EMBEDDING_BASE_URL: https://api.siliconflow.cn/v1
+      SPRING_AI_OPENAI_EMBEDDING_OPTIONS_MODEL: BAAI/bge-large-zh-v1.5
+    ports:
+      - "8081:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mindflow-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8082:80"
+
+volumes:
+  mysql-data:
+  postgres-data:
+  redis-data:
