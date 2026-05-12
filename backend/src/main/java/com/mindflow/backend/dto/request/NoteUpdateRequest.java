@@ -3,6 +3,7 @@ package com.mindflow.backend.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import java.util.List;
 
 @Data
 @Schema(description = "更新笔记请求")
@@ -20,4 +21,5 @@ public class NoteUpdateRequest {
 
     @Schema(description = "是否归档", example = "false")
     private Boolean isArchived;
+    private List<String> tags;
 }

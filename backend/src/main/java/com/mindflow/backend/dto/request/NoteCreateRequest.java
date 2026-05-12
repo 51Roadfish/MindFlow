@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.util.List;
 
 @Data
 @Schema(description = "创建笔记请求")
@@ -19,4 +20,5 @@ public class NoteCreateRequest {
     @NotNull(message = "所属笔记本 ID 不能为空")
     @Schema(description = "所属笔记本ID", example = "1")
     private Long notebookId;
+    private List<String> tags;
 }

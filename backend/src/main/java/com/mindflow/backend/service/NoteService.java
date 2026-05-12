@@ -10,5 +10,5 @@ public interface NoteService {
     NoteResponse updateNote(Long noteId, NoteUpdateRequest request, String username);
     void deleteNote(Long noteId, String username);
     NoteResponse getNote(Long noteId, String username);
-    List<NoteResponse> getAllNotes(String username);
+    List<NoteResponse> getAllNotes(String username, List<String> tags);
 }

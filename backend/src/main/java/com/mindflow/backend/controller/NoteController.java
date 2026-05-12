@@ -40,7 +40,9 @@ public class NoteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<NoteResponse>> getAllNotes(Authentication authentication) {
-        return ResponseEntity.ok(noteService.getAllNotes(authentication.getName()));
+    public ResponseEntity<List<NoteResponse>> getAllNotes(
+            @RequestParam(required = false) List<String> tags,
+            Authentication authentication) {
+        return ResponseEntity.ok(noteService.getAllNotes(authentication.getName(), tags));
     }
 }
