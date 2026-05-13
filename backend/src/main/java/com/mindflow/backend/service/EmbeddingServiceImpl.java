@@ -22,7 +22,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
     @Override
     public void embedAndStore(Note note) {
         //vectorStoreService.deleteByNoteId(note.getId());
-        List<String> chunks = TextSplitter.split(note.getContent(), 500);
+        List<String> chunks = TextSplitter.split(note.getContent(), 200);
         List<Document> docs = IntStream.range(0, chunks.size())
             .mapToObj(i -> new Document(chunks.get(i), Map.of(
                 "userId", String.valueOf(note.getUserId()),

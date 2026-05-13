@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NoteServiceImpl implements NoteService {
@@ -45,6 +48,7 @@ public class NoteServiceImpl implements NoteService {
 
     @Override
     public NoteResponse createNote(NoteCreateRequest request, String username) {
+        log.info("Creating note for user '{}': title='{}'", username, request.getTitle());
         User user = getUserByUsername(username);
         Note note = new Note();
         note.setUserId(user.getId());

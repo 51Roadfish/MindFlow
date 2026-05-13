@@ -42,8 +42,7 @@ public class AIController {
     public ResponseEntity<?> chat(@RequestBody AIChatRequest request,
                                   Authentication authentication) {
         Long userId = getUserId(authentication);
-        String response = aiChatService.chat(userId, request.getQuestion());
-        return ResponseEntity.ok(Map.of("answer", response));
+        return ResponseEntity.ok(aiChatService.chat(userId, request.getQuestion()));
     }
 
     @PostMapping("/write")

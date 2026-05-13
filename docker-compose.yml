@@ -29,6 +29,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5433:5432"
     healthcheck:
@@ -67,8 +68,9 @@ services:
       redis:
         condition: service_healthy
     environment:
+      TZ: Asia/Shanghai
       # MySQL
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-mindflow}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-mindflow}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-mindflow}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       # pgvector
@@ -83,13 +85,13 @@ services:
       # JWT
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-      # AI Chat — 智谱 GLM-4-Flash
+      # AI Chat — 硅基流动 Qwen2.5-7B (快速)
       SPRING_AI_OPENAI_CHAT_API_KEY: ${OPENAI_CHAT_API_KEY}
-      SPRING_AI_OPENAI_CHAT_BASE_URL: https://open.bigmodel.cn/api/paas/v4
-      SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL: GLM-4-Flash
+      SPRING_AI_OPENAI_CHAT_BASE_URL: https://api.siliconflow.cn
+      SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL: Qwen/Qwen2.5-7B-Instruct
       # AI Embedding — 硅基流动 BAAI/bge-large-zh-v1.5
       SPRING_AI_OPENAI_EMBEDDING_API_KEY: ${OPENAI_EMBEDDING_API_KEY}
-      SPRING_AI_OPENAI_EMBEDDING_BASE_URL: https://api.siliconflow.cn/v1
+      SPRING_AI_OPENAI_EMBEDDING_BASE_URL: https://api.siliconflow.cn
       SPRING_AI_OPENAI_EMBEDDING_OPTIONS_MODEL: BAAI/bge-large-zh-v1.5
     ports:
       - "8081:8080"
