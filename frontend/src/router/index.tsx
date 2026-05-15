@@ -7,6 +7,8 @@ import NoteDetail from '../pages/Notes/Detail';
 import AIChat from '../pages/AIChat';
 import AIWrite from '../pages/AIWrite';
 import AISearch from '../pages/AISearch';
+import Review from '../pages/Review';
+import Exam from '../pages/Exam';
 import { useAuthStore } from '../store';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -33,6 +35,8 @@ export const router = createBrowserRouter([
       { path: 'ai/chat', element: <AIChat /> },
       { path: 'ai/write', element: <AIWrite /> },
       { path: 'ai/search', element: <AISearch /> },
+      { path: 'ai/review', element: <Review /> },
+      { path: 'ai/exam', element: <Exam /> },
     ],
   },
 ]);

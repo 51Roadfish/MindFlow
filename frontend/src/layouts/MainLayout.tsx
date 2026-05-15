@@ -1,9 +1,10 @@
 ﻿import React from 'react';
 import { Layout, Menu, Input, Dropdown, Space, Avatar } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  FileTextOutlined, RobotOutlined, SearchOutlined, 
-  EditOutlined, LogoutOutlined, UserOutlined 
+import {
+  FileTextOutlined, RobotOutlined, SearchOutlined,
+  EditOutlined, LogoutOutlined, UserOutlined,
+  CheckCircleOutlined, FileDoneOutlined
 } from '@ant-design/icons';
 import { useAuthStore } from '../store';
 
@@ -23,6 +24,8 @@ const MainLayout: React.FC = () => {
     { key: '/ai/chat', icon: <RobotOutlined />, label: 'AI 问答助手' },
     { key: '/ai/write', icon: <EditOutlined />, label: 'AI 写作助手' },
     { key: '/ai/search', icon: <SearchOutlined />, label: 'AI 语义搜索' },
+    { key: '/ai/review', icon: <CheckCircleOutlined />, label: 'AI 复习' },
+    { key: '/ai/exam', icon: <FileDoneOutlined />, label: 'AI 考试' },
   ];
 
   const handleLogout = () => {

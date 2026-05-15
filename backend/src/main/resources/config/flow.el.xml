@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow>
+    <!-- 复习启动链：加载笔记 → 生成第一道题目 -->
+    <chain name="review_start_chain">
+        THEN(loadNotesComponent, generateQuestionComponent)
+    </chain>
+
+    <!-- 答题评分链：评分 + 决策下一步（合并为一次 AI 调用） -->
+    <chain name="review_answer_chain">
+        THEN(scoreAnswerComponent)
+    </chain>
+
+    <!-- 出卷链：加载笔记 → 生成整套试卷 -->
+    <chain name="exam_generate_chain">
+        THEN(loadNotesComponent, generateExamComponent)
+    </chain>
+</flow>

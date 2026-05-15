@@ -1,0 +1,136 @@
+# MindFlow 知识库全量健康巡检
+# 每次合并到 main/develop 时自动运行，检查 Skill 文件与实际代码的一致性
+# 健康评分 < 85% 自动创建 Issue
+
+name: Knowledge Base Health Check
+
+on:
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 全量知识健康巡检
+        run: |
+          mkdir -p audit-report
+          echo "# 知识库全量健康巡检报告" > audit-report/report.md
+          echo "巡检时间: $(date)" >> audit-report/report.md
+          echo "基线版本: $(git rev-parse HEAD)" >> audit-report/report.md
+          echo "" >> audit-report/report.md
+
+          TOTAL_REFS=0
+          VALID_REFS=0
+
+          # === 1. 代码锚点有效性 ===
+          echo "## 1. 代码锚点有效性" >> audit-report/report.md
+          echo "| Skill 文件 | 引用类型 | 引用内容 | 状态 |" >> audit-report/report.md
+          echo "|-----------|---------|---------|------|" >> audit-report/report.md
+
+          for skill_file in .skills/skill-*.md; do
+            if [ ! -f "$skill_file" ]; then continue; fi
+            module=$(basename "$skill_file" .md)
+
+            # 文件路径引用 (e.g. `controller/AIController.java`)
+            for ref in $(grep -oP '`[A-Za-z0-9_/.-]+\.java:[0-9-]+`' "$skill_file" 2>/dev/null | tr -d '`' | sort -u); do
+              TOTAL_REFS=$((TOTAL_REFS + 1))
+              file_path=$(echo "$ref" | cut -d: -f1)
+              full_path="backend/src/main/java/com/mindflow/backend/$file_path"
+              if [ -f "$full_path" ]; then
+                echo "| $module | 文件路径 | $ref | ✅ |" >> audit-report/report.md
+                VALID_REFS=$((VALID_REFS + 1))
+              else
+                echo "| $module | 文件路径 | $ref | ❌ 文件不存在 |" >> audit-report/report.md
+              fi
+            done
+
+            # 类名引用 (e.g. `NoteServiceImpl`)
+            for class_ref in $(grep -oP '`[A-Z][A-Za-z]+`' "$skill_file" 2>/dev/null | tr -d '`' | grep -v 'json\|xml\|URL\|API\|JWT\|JSON\|SQL\|PK\|FK\|UUID\|HNSW\|TTL\|CORS' | sort -u); do
+              TOTAL_REFS=$((TOTAL_REFS + 1))
+              if grep -r "class $class_ref\|interface $class_ref\|enum $class_ref" backend/src/main/java/ > /dev/null 2>&1; then
+                echo "| $module | 类名 | $class_ref | ✅ |" >> audit-report/report.md
+                VALID_REFS=$((VALID_REFS + 1))
+              else
+                echo "| $module | 类名 | $class_ref | ❌ 未找到 |" >> audit-report/report.md
+              fi
+            done
+          done
+
+          # === 2. API 接口一致性 ===
+          echo "" >> audit-report/report.md
+          echo "## 2. API 接口一致性" >> audit-report/report.md
+          echo "| 实际端点 | AGENTS.md 记录 |" >> audit-report/report.md
+          echo "|---------|---------------|" >> audit-report/report.md
+
+          while IFS= read -r endpoint; do
+            if [ -n "$endpoint" ]; then
+              if grep -q "$endpoint" AGENTS.md 2>/dev/null; then
+                echo "| \`$endpoint\` | ✅ 已记录 |" >> audit-report/report.md
+              else
+                echo "| \`$endpoint\` | ❌ 缺失 |" >> audit-report/report.md
+              fi
+            fi
+          done <<< "$(grep -rohP '@(Post|Get|Put|Delete)Mapping\("\K[^"]+' backend/src/main/java/com/mindflow/backend/controller/ 2>/dev/null | sort -u)"
+
+          # === 3. 健康评分 ===
+          echo "" >> audit-report/report.md
+          echo "## 3. 总体健康评分" >> audit-report/report.md
+
+          if [ "$TOTAL_REFS" -gt 0 ]; then
+            SCORE=$((VALID_REFS * 100 / TOTAL_REFS))
+          else
+            SCORE=100
+          fi
+
+          echo "- 代码锚点总引用数: $TOTAL_REFS" >> audit-report/report.md
+          echo "- 有效引用数: $VALID_REFS" >> audit-report/report.md
+          echo "- 健康评分: **${SCORE}%**" >> audit-report/report.md
+
+          # === 4. 知识新鲜度 ===
+          echo "" >> audit-report/report.md
+          echo "## 4. 知识新鲜度" >> audit-report/report.md
+          echo "| Skill 文件 | 最后修改时间 | 状态 |" >> audit-report/report.md
+          echo "|-----------|-------------|------|" >> audit-report/report.md
+
+          for skill_file in .skills/skill-*.md; do
+            if [ ! -f "$skill_file" ]; then continue; fi
+            mtime=$(stat -c '%Y' "$skill_file" 2>/dev/null || stat -f '%m' "$skill_file" 2>/dev/null)
+            now=$(date +%s)
+            days_old=$(( (now - mtime) / 86400 ))
+            if [ "$days_old" -gt 30 ]; then
+              echo "| $skill_file | ${days_old}天前 | ⚠️ 超过30天未更新 |" >> audit-report/report.md
+            else
+              echo "| $skill_file | ${days_old}天前 | ✅ |" >> audit-report/report.md
+            fi
+          done
+
+          echo "SCORE=$SCORE" >> $GITHUB_ENV
+
+      - name: 健康评分低于阈值则创建 Issue
+        if: env.SCORE < 85
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('audit-report/report.md', 'utf8');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🧹 知识库健康巡检 — 评分 ${process.env.SCORE}%`,
+              body: report + '\n\n---\n_此 Issue 由自动化知识库巡检生成_',
+              labels: ['knowledge-base', 'tech-debt']
+            });
+
+      - name: 上传巡检报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-audit-report
+          path: audit-report/report.md

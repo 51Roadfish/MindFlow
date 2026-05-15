@@ -54,6 +54,21 @@ services:
       retries: 5
       start_period: 10s
 
+  mongodb:
+    image: mongo:7
+    container_name: mindflow-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   backend:
     build:
       context: ./backend
@@ -67,8 +82,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
     environment:
       TZ: Asia/Shanghai
+      SERVER_PORT: 8080
       # MySQL
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-mindflow}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-mindflow}
@@ -82,6 +100,9 @@ services:
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      # MongoDB
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
       # JWT
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
@@ -111,3 +132,4 @@ volumes:
   mysql-data:
   postgres-data:
   redis-data:
+  mongo-data:
