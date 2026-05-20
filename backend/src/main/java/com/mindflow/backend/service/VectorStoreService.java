@@ -15,7 +15,7 @@ public class VectorStoreService {
 
     private final VectorStore vectorStore;
 
-    public List<Document> similaritySearch(Long userId, String query, int topK) {
+    public List<Document>similaritySearch(Long userId, String query, int topK) {
         return vectorStore.similaritySearch(
                 SearchRequest.query(query)
                         .withTopK(topK)

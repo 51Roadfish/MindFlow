@@ -42,12 +42,12 @@ public class ReviewService {
     @Value("${review.max-questions-per-session:20}")
     private int maxQuestions;
 
-    /** 启动复习会话（幂等：同用户+同笔记的活跃会话只创建一次） */
+    /** 启动复习会话（原子：先生成题目，再写数据库，不留僵死会话） */
     @Transactional
     public ReviewSessionResponse start(ReviewStartRequest request, Long userId) {
         String noteIdsHash = hashNoteIds(request.getNoteIds());
 
-        // 幂等检查：已有活跃会话则直接返回（需验证快照中有题目，否则视为僵死会话并重建）
+        // 幂等检查：已有活跃会话则直接返回
         Optional<ReviewSession> existing = sessionRepository
                 .findByUserIdAndNoteIdsHashAndStatus(userId, noteIdsHash, "IN_PROGRESS");
         if (existing.isPresent()) {
@@ -56,14 +56,25 @@ public class ReviewService {
             if (snapshot != null && snapshot.getCurrentQuestionJson() != null) {
                 return buildResponse(session, snapshot);
             }
-            // 僵死会话：无有效题目，取消并重建
-            log.warn("Stale session {} found without valid question, cancelling and recreating", session.getId());
-            session.setStatus("CANCELLED");
-            sessionRepository.save(session);
+            // 僵死会话：无有效题目，清理后重建
+            log.warn("Stale session {} found without valid question, cleaning up and recreating", session.getId());
             snapshotCache.evictSession(session.getId());
+            sessionRepository.delete(session);
+            sessionRepository.flush();
         }
 
-        // 创建新会话
+        // 第一步：先生成题目（无持久化副作用，失败不留痕迹）
+        ReviewContext reviewCtx = new ReviewContext();
+        reviewCtx.setUserId(userId);
+        reviewCtx.setNoteIds(request.getNoteIds());
+        try {
+            flowExecutor.execute2Resp("review_start_chain", reviewCtx);
+        } catch (Exception e) {
+            log.error("Failed to generate review questions", e);
+            throw new RuntimeException("Failed to generate first question", e);
+        }
+
+        // 第二步：创建会话（题目已生成，不会因 LLM 超时而僵死）
         ReviewSession session = new ReviewSession();
         session.setUserId(userId);
         try {
@@ -73,31 +84,12 @@ public class ReviewService {
         }
         session.setNoteIdsHash(noteIdsHash);
         session.setStatus("IN_PROGRESS");
-        session.setTotalQuestions(0);
+        session.setTotalQuestions(reviewCtx.getTurnCount());
         session.setAnsweredQuestions(0);
         session.setTotalScore(0);
         session = sessionRepository.save(session);
 
-        // 执行 LiteFlow 复习启动链
-        ReviewContext reviewCtx = new ReviewContext();
-        reviewCtx.setSessionId(session.getId());
-        reviewCtx.setUserId(userId);
-        reviewCtx.setNoteIds(request.getNoteIds());
-
-        try {
-            flowExecutor.execute2Resp("review_start_chain", reviewCtx);
-        } catch (Exception e) {
-            log.error("LiteFlow review_start_chain failed", e);
-            session.setStatus("CANCELLED");
-            sessionRepository.save(session);
-            throw new RuntimeException("Failed to generate first question", e);
-        }
-
-        // 更新会话
-        session.setTotalQuestions(reviewCtx.getTurnCount());
-        sessionRepository.save(session);
-
-        // 保存 Mongo 快照
+        // 第三步：保存 MongoDB 快照
         saveSnapshot(session, reviewCtx, null);
 
         Question current = getCurrentQuestion(reviewCtx);
