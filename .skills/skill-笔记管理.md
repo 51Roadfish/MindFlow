@@ -13,7 +13,6 @@
 - 修改 AI 问答或搜索逻辑（应读 Skill: AI 语义搜索与 RAG 问答）
 - 修改用户认证（应读 Skill: 用户认证与权限）
 - 修改复习/出题逻辑（应读 Skill: AI 复习与出题）
-- 修改前端页面布局（无关）
 
 ## 业务领域知识
 
@@ -26,6 +25,7 @@
 - **Tags**：JSON 数组类型标签，支持 MySQL JSON_OVERLAPS 查询
 - **Embedding**：笔记创建/更新后异步触发向量化，分块后存入 pgvector
 - **Async**：向量化通过 `@Async` 异步执行，不阻塞用户操作
+- **Markdown 编辑器**：笔记详情页使用 react-simplemde-editor（EasyMDE）编写 Markdown，支持预览/编辑双模式切换，`options` 引用必须用 `useMemo` 固定，否则输入时光标跳转
 
 ### 关键业务规则与不变量
 

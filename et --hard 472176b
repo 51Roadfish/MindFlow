@@ -1,0 +1,14 @@
+[33m155e70e[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m HEAD@{0}: reset: moving to HEAD~1
+[33mde9d5d7[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{1}: reset: moving to HEAD~2
+[33m7c71e6b[m HEAD@{2}: revert: Revert "SKILL系统以及AI复习思维链"
+[33m472176b[m HEAD@{3}: commit: SKILL系统以及AI复习思维链
+[33mde9d5d7[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{4}: commit: 前后端联调，语义检索、AI问答√
+[33m155e70e[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m HEAD@{5}: pull: Merge made by the 'recursive' strategy.
+[33mbb406b2[m HEAD@{6}: commit: 全局异常处理 + 参数校验 + Swagger 文档
+[33mf36a2ff[m HEAD@{7}: commit: 初步雏形，登录、笔记向量化、查询可以调通
+[33m978606c[m HEAD@{8}: reset: moving to HEAD~1
+[33m4b302e2[m HEAD@{9}: commit: Remove application.yml from tracking
+[33m978606c[m HEAD@{10}: reset: moving to HEAD~1
+[33me2ac9d6[m HEAD@{11}: commit: 初步雏形，登录、笔记向量化、查询可以调通
+[33m978606c[m HEAD@{12}: Branch: renamed refs/heads/master to refs/heads/main
+[33m978606c[m HEAD@{14}: commit (initial): Initial commit: MindFlow project scaffold with Spring Boot + React

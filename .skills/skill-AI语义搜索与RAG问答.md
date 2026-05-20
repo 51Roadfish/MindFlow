@@ -92,7 +92,7 @@
 - Controller: `controller/AIController.java:33-39`
 - VectorStoreService: `service/VectorStoreService.java:18-24`
 
-### RAG 问答流程
+### RAG 问答流程（阻塞）
 
 ```
 用户 POST /api/ai/chat { "question": "..." }
@@ -119,9 +119,49 @@
       → 返回 AIChatResponse(intent="WRITE", answer, sources=[])
 ```
 
+### RAG 问答流程（流式 SSE）
+
+```
+用户 POST /api/ai/chat/stream { "question": "..." }
+  → AIController.chatStream(request, authentication)
+    → 返回 SseEmitter(180s timeout)
+    → AIChatService.chatStream(userId, question)
+      → IntentRouterService.analyze(question)  ← 同阻塞流程
+
+      当意图 = SEARCH:
+      → VectorStoreService.similaritySearch(userId, intentResult.query(), topK=5)
+      → 拼接 RAG Prompt（同上）
+      → streamingChatModel.stream(new Prompt(ragPrompt))
+        → Flux<ChatResponse> 逐 token 发出
+      → 每个 token 通过 SseEmitter.event().data(token) 推给客户端
+      → 最终发送 data:[DONE] 表示结束
+
+      当意图 = CHAT:
+      → streamingChatModel.stream(new Prompt(question))
+        → Flux<ChatResponse> 逐 token 发出
+
+      当意图 = WRITE:
+      → 阻塞调用 aiWriteService.process()，结果作为单 token 发送
+
+    → 前端 response.body.getReader() 读取 ReadableStream
+    → 按 \n\n 分割 SSE 帧，解析 data: 前缀
+    → 逐 token setMessages() 更新 UI（打字机效果）
+    → 收到 data:[DONE] 停止读取
+```
+
+SSE 格式：
+```
+data:<token1>\n\n
+data:<token2>\n\n
+data:[DONE]\n\n
+```
+
 关键代码位置：
-- Controller: `controller/AIController.java:41-46`
-- AIChatService: `service/AIChatService.java:25-81`
+- Controller（阻塞）: `controller/AIController.java:43-48`
+- Controller（流式 SSE）: `controller/AIController.java:52-82` — 返回 `SseEmitter`，Nginx 需配置 `proxy_http_version 1.1` + `proxy_buffering off`
+- AIChatService（阻塞）: `service/AIChatService.java:29-84`
+- AIChatService（流式 SSE）: `service/AIChatService.java:86-119`
+- 前端流式解析: `pages/AIChat/index.tsx:56-85` — `ReadableStream.getReader()` + SSE 帧解析
 - VectorStoreService: `service/VectorStoreService.java:18-24`
 
 ### PgVectorStore 配置
@@ -159,6 +199,12 @@ spring:
 - [ ] 修改 pgvector 连接 → 影响搜索 + RAG 问答 + 异步向量化三条路径
 
 ### 常见变更模式
+
+**SSE 流式输出**：
+后端使用 `SseEmitter`（而非 `Flux<String>` + `TEXT_EVENT_STREAM_VALUE`），由 Spring MVC 原生处理 SSE 格式。每个 `emitter.send(SseEmitter.event().data(token))` 生成 `data:token\n\n`。需确保：
+- Nginx 配置 `proxy_http_version 1.1` + `proxy_buffering off`
+- `SseEmitter` 设置合理 timeout（当前 180s）
+- 注册 `onCompletion/onTimeout/onError` 回调清理 Flux 订阅
 
 **增加 Rerank 重排序**：
 ```java

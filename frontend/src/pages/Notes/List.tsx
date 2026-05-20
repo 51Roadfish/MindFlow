@@ -3,6 +3,7 @@ import { Card, Button, List, Typography, Space, Tag, Popconfirm, message, Select
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import request from '../../utils/request';
+import { stripMarkdown } from '../../utils/markdown';
 
 export default function NotesList() {
   const navigate = useNavigate();
@@ -106,7 +107,7 @@ export default function NotesList() {
                 <Card.Meta
                   title={item.title}
                   description={
-                    item.summary || (item.content?.substring(0, 80) + '...') || '无内容'
+                    item.summary || (stripMarkdown(item.content)?.substring(0, 80) + '...') || '无内容'
                   }
                 />
                 <div style={{ marginTop: 12, minHeight: 24 }}>

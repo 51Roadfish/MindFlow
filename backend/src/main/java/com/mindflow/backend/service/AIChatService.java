@@ -5,8 +5,11 @@ import com.mindflow.backend.dto.response.AIChatResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.StreamingChatModel;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +24,7 @@ public class AIChatService {
     private final VectorStoreService vectorStoreService;
     private final AIWriteService aiWriteService;
     private final ChatModel chatModel;
+    private final StreamingChatModel streamingChatModel;
 
     public AIChatResponse chat(Long userId, String question) {
         // 第一步：调用 IntentRouterService 分析意图
@@ -77,5 +81,40 @@ public class AIChatService {
                 .answer(answer)
                 .sources(sources != null ? sources : Collections.emptyList())
                 .build();
+    }
+
+    public Flux<String> chatStream(Long userId, String question) {
+        IntentResult intentResult = intentRouterService.analyze(question);
+        log.info("流式问答意图解析结果: {}", intentResult);
+
+        switch (intentResult.intent()) {
+            case IntentRouterService.INTENT_WRITE:
+                String writeResult = aiWriteService.process("continue", question);
+                return Flux.just(writeResult);
+
+            case IntentRouterService.INTENT_SEARCH:
+                List<Document> docs = vectorStoreService.similaritySearch(userId, intentResult.query(), 5);
+
+                if (docs == null || docs.isEmpty()) {
+                    return Flux.just("根据您当前的知识库笔记，我没有找到相关的参考信息。");
+                }
+
+                String context = docs.stream()
+                        .map(d -> "[" + d.getMetadata().get("noteTitle") + "]: " + d.getContent())
+                        .collect(Collectors.joining("\n\n"));
+
+                String ragPrompt = "你是一个知识库 AI 助手。请基于以下提取自个人知识库的笔记内容，来回答用户的原始问题。\n"
+                        + "如果给出的笔记无法解答该问题，请如实回答说知识库中未包含相关内容。\n\n"
+                        + "【笔记内容参考】:\n" + context + "\n\n"
+                        + "【用户原始问题】: " + question;
+
+                return streamingChatModel.stream(new Prompt(ragPrompt))
+                        .map(r -> r.getResult().getOutput().getContent());
+
+            case IntentRouterService.INTENT_CHAT:
+            default:
+                return streamingChatModel.stream(new Prompt(question))
+                        .map(r -> r.getResult().getOutput().getContent());
+        }
     }
 }

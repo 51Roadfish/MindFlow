@@ -6,7 +6,7 @@
 - 修改/优化意图分类逻辑（CHAT / SEARCH / WRITE）
 - 修改意图分析 Prompt
 - 新增意图类型
-- 修改意图路由后的调度逻辑
+- 修改意图路由后的调度逻辑（含流式和非流式两条路径）
 - 优化检索词提取（query 提取策略）
 
 ### 不应该读这个 Skill 的场景
@@ -40,9 +40,9 @@
 
 1. **意图路由只负责分析，不负责执行**
    → 返回 `IntentResult(intent, query)`，由 `AIChatService` 根据 intent 值 switch 调度到不同模块
-   → 实现: `IntentRouterService.analyze()` → `IntentResult` → `AIChatService.chat()` 第 34 行 switch
-   → 位置: `service/IntentRouterService.java:36-71` | `service/AIChatService.java:34-72`
-   → 约束: 新增意图需同步修改三处 — IntentRouterService 常量 + Prompt + AIChatService switch
+   → 实现: `IntentRouterService.analyze()` → `IntentResult` → `AIChatService.chat()` 第 34 行 switch（阻塞）/ `AIChatService.chatStream()` 第 90 行 switch（流式）
+   → 位置: `service/IntentRouterService.java:36-71` | `service/AIChatService.java:34-72`(阻塞) + `service/AIChatService.java:86-119`(流式)
+   → 约束: 新增意图需同步修改四处 — IntentRouterService 常量 + Prompt + AIChatService.chat() switch + AIChatService.chatStream() switch
 
 2. **SEARCH 意图必须附带优化后的检索词 query**
    → 模型需从用户提问中提取核心关键词，去除语气词和冗余修饰，提升向量检索命中率
@@ -101,7 +101,9 @@ AIChatService.chat(userId, question)
 关键代码位置：
 - IntentRouterService: `service/IntentRouterService.java:36-71`
 - IntentResult: `dto/IntentResult.java:3` — `public record IntentResult(String intent, String query) {}`
-- ChatService 调度: `service/AIChatService.java:25-80`
+- ChatService 调度（阻塞）: `service/AIChatService.java:25-80`
+- ChatService 调度（流式 SSE）: `service/AIChatService.java:86-119`
+- Controller SSE 端点: `controller/AIController.java:52-82`（返回 `SseEmitter`）
 
 ## 变更指南
 
